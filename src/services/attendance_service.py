@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from src.models.attendance import AttendanceRecord
 from src.models.employee import Employee
 from src.storage.json_storage import JSONStorage
@@ -13,6 +13,10 @@ from src.config.settings import (
 from src.services.employee_service import EmployeeService
 
 
+NIGHT_SHIFT_START_HOUR = 22
+NIGHT_SHIFT_END_HOUR = 6
+
+
 class AttendanceService:
     def __init__(self):
         self.storage = JSONStorage(ATTENDANCE_DATA_FILE)
@@ -21,11 +25,22 @@ class AttendanceService:
     def _get_today_date(self) -> str:
         return datetime.now().strftime("%Y-%m-%d")
 
+    def _get_yesterday_date(self) -> str:
+        return (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+
     def _get_current_time(self) -> str:
         return datetime.now().strftime("%H:%M:%S")
 
+    def _get_current_hour(self) -> int:
+        return datetime.now().hour
+
     def _parse_time(self, time_str: str) -> time:
         return datetime.strptime(time_str, "%H:%M:%S").time()
+
+    def _is_night_shift_time(self, hour: int = None) -> bool:
+        if hour is None:
+            hour = self._get_current_hour()
+        return hour >= NIGHT_SHIFT_START_HOUR or hour < NIGHT_SHIFT_END_HOUR
 
     def _is_late(self, clock_in_time: str) -> bool:
         in_time = self._parse_time(clock_in_time)
@@ -47,6 +62,30 @@ class AttendanceService:
             return round(out_hours - end_hours, 1)
         return 0.0
 
+    def _find_latest_unfinished_record(self, emp_id: str) -> Optional[AttendanceRecord]:
+        today = self._get_today_date()
+        yesterday = self._get_yesterday_date()
+        current_hour = self._get_current_hour()
+
+        today_record = self.get_record_by_date(emp_id, today)
+        if today_record and not today_record.clock_out_time:
+            return today_record
+
+        if current_hour < NIGHT_SHIFT_END_HOUR:
+            yesterday_record = self.get_record_by_date(emp_id, yesterday)
+            if yesterday_record and yesterday_record.clock_in_time and not yesterday_record.clock_out_time:
+                logger.debug(f"找到昨天的未完成打卡记录: {yesterday}")
+                return yesterday_record
+
+        all_records = self.get_records_by_employee(emp_id)
+        all_records.sort(key=lambda r: r.date, reverse=True)
+
+        for record in all_records:
+            if record.clock_in_time and not record.clock_out_time:
+                return record
+
+        return None
+
     def clock_in(self, emp_id: str) -> Optional[AttendanceRecord]:
         employee = self.employee_service.get_employee_by_id(emp_id)
         if not employee:
@@ -58,7 +97,7 @@ class AttendanceService:
 
         if existing_record:
             if existing_record.clock_in_time:
-                logger.warning(f"打卡失败：{employee.name} 今日已打卡")
+                logger.warning(f"打卡失败：{employee.name} 今日已上班打卡")
                 return None
 
             existing_record.clock_in_time = self._get_current_time()
@@ -83,7 +122,7 @@ class AttendanceService:
         )
 
         if self.storage.add(record.to_dict()):
-            logger.info(f"上班打卡: {employee.name} - {current_time}")
+            logger.info(f"上班打卡: {employee.name} - {current_time} (日期: {today})")
             return record
         return None
 
@@ -93,15 +132,18 @@ class AttendanceService:
             logger.warning(f"打卡失败：未找到员工 ID: {emp_id}")
             return None
 
+        current_hour = self._get_current_hour()
         today = self._get_today_date()
-        record = self.get_record_by_date(emp_id, today)
+        yesterday = self._get_yesterday_date()
+
+        record = self._find_latest_unfinished_record(emp_id)
 
         if not record:
-            logger.warning(f"打卡失败：{employee.name} 今日未上班打卡")
+            logger.warning(f"打卡失败：{employee.name} 没有待下班的上班打卡记录")
             return None
 
         if record.clock_out_time:
-            logger.warning(f"打卡失败：{employee.name} 今日已下班打卡")
+            logger.warning(f"打卡失败：{employee.name} 已下班打卡")
             return None
 
         current_time = self._get_current_time()
@@ -119,7 +161,13 @@ class AttendanceService:
             record.status = "正常"
 
         if self.storage.update(record.id, record.to_dict()):
-            logger.info(f"下班打卡: {employee.name} - {current_time}")
+            if record.date != today:
+                logger.info(
+                    f"下班打卡(跨天): {employee.name} - {current_time} "
+                    f"(上班日期: {record.date}, 下班日期: {today})"
+                )
+            else:
+                logger.info(f"下班打卡: {employee.name} - {current_time}")
             return record
         return None
 

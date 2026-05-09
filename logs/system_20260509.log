@@ -28,3 +28,28 @@
 2026-05-09 21:18:32 - AttendanceSystem - INFO - CSV导出成功: data\export_test.csv, 共8条记录
 2026-05-09 21:18:32 - AttendanceSystem - INFO - TXT导出成功: data\export_test.txt, 共8条记录
 2026-05-09 21:18:32 - AttendanceSystem - INFO - CSV导出成功: data\export_tech.csv, 共3条记录
+2026-05-09 21:37:02 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 21:37:02 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 21:37:02 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 21:37:02 - AttendanceSystem - INFO - 新增员工: 张三 (EMP001)
+2026-05-09 21:37:02 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 21:37:48 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 21:37:48 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 21:37:48 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 21:37:48 - AttendanceSystem - INFO - 新增员工: 张三 (EMP001)
+2026-05-09 21:37:48 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 21:37:48 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 21:37:48 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
+2026-05-09 21:37:48 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
+2026-05-09 21:37:48 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
+2026-05-09 21:37:48 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
+2026-05-09 21:38:17 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 21:38:17 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 21:38:17 - AttendanceSystem - INFO - 新增员工: 张三 (EMP001)
+2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 21:38:17 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
+2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
+2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
+2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
