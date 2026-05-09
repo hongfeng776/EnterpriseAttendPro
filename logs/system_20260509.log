@@ -53,3 +53,44 @@
 2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
 2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
 2026-05-09 21:38:17 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json.test
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\leave.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 新增员工: 张三 (EMP001)
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\leave.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 请假申请提交: 张三 - 年假 (2026-05-15 ~ 2026-05-17, 3.0天)
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 标记缺勤: 张三 - 2026-05-15
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 标记缺勤: 张三 - 2026-05-16
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 标记缺勤: 张三 - 2026-05-17
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 更新数据 e75294c9-5956-4b8c-baa9-3e936c750436 在 C:\Users\asus\Desktop\EnterpriseAttendPro\data\leave.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 请假批准: 张三 - 年假 (2026-05-15~2026-05-17)
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 更新数据 37c01764-890c-42c4-9719-4e283296a955 在 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 更新数据 22063656-eb7d-4791-8a7f-50553b7effef 在 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 更新数据 72ff2d8e-efa9-4c7a-a3b5-e3f2976a45c8 在 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 考勤豁免: 8dc4ec7b-7072-4bdc-ab19-69f33baf1651 - 2026-05-15~2026-05-17 - 成功3/3天
+2026-05-09 22:28:20 - AttendanceSystem - WARNING - 请假申请失败：与已有请假重叠
+2026-05-09 22:28:20 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\leave.json
+2026-05-09 22:28:20 - AttendanceSystem - INFO - 请假申请提交: 张三 - 病假 (2026-05-20 ~ 2026-05-22, 3.0天)
+2026-05-09 22:35:28 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\leave.json
+2026-05-09 22:35:28 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 22:35:28 - AttendanceSystem - INFO - 创建新数据文件: C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:36:31 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\employees.json
+2026-05-09 22:36:31 - AttendanceSystem - INFO - 新增员工: 张三 (EMP001)
+2026-05-09 22:36:31 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\leave.json
+2026-05-09 22:36:31 - AttendanceSystem - INFO - 请假申请提交成功: 张三 - 年假 (2026-05-09 ~ 2026-05-11, 3.0天)
+2026-05-09 22:36:31 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\leave.json
+2026-05-09 22:36:31 - AttendanceSystem - INFO - 请假申请提交成功: 张三 - 事假 (2026-05-14 ~ 2026-05-15, 2.0天)
+2026-05-09 22:36:31 - AttendanceSystem - DEBUG - 更新数据 2d469fff-2761-4548-8bfe-b94c5804bc19 在 C:\Users\asus\Desktop\EnterpriseAttendPro\data\leave.json
+2026-05-09 22:36:31 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:36:31 - AttendanceSystem - INFO - 张三 2026-05-09 已豁免为 年假
+2026-05-09 22:36:31 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:36:31 - AttendanceSystem - INFO - 张三 2026-05-10 已豁免为 年假
+2026-05-09 22:36:31 - AttendanceSystem - DEBUG - 添加数据到 C:\Users\asus\Desktop\EnterpriseAttendPro\data\attendance.json
+2026-05-09 22:36:31 - AttendanceSystem - INFO - 张三 2026-05-11 已豁免为 年假
+2026-05-09 22:36:31 - AttendanceSystem - INFO - 请假申请已批准: 张三 - 年假 - 审批人: 李经理
+2026-05-09 22:38:50 - AttendanceSystem - INFO - 系统启动
+2026-05-09 22:39:59 - AttendanceSystem - INFO - 系统启动

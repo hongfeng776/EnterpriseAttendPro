@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "2d469fff-2761-4548-8bfe-b94c5804bc19",
+    "employee_id": "7873e15a-1ba7-4529-b9cf-3b547e4d7cb9",
+    "employee_name": "张三",
+    "leave_type": "年假",
+    "start_date": "2026-05-09",
+    "end_date": "2026-05-11",
+    "total_days": 3.0,
+    "reason": "休年假放松一下",
+    "status": "已批准",
+    "approver": "李经理",
+    "approval_remark": "同意年假",
+    "approved_at": "2026-05-09 22:36:31",
+    "created_at": "2026-05-09 22:36:31"
+  },
+  {
+    "id": "54a083f0-cfa8-482b-8cfe-c62091f4c20b",
+    "employee_id": "7873e15a-1ba7-4529-b9cf-3b547e4d7cb9",
+    "employee_name": "张三",
+    "leave_type": "事假",
+    "start_date": "2026-05-14",
+    "end_date": "2026-05-15",
+    "total_days": 2.0,
+    "reason": "处理私事",
+    "status": "待审批",
+    "approver": "",
+    "approval_remark": "",
+    "approved_at": "",
+    "created_at": "2026-05-09 22:36:31"
+  }
+]

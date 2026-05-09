@@ -1,5 +1,5 @@
-from typing import List, Optional
-from datetime import datetime, time, timedelta
+from typing import List, Optional, Dict
+from datetime import datetime, timedelta
 from src.models.attendance import AttendanceRecord
 from src.models.employee import Employee
 from src.storage.json_storage import JSONStorage
@@ -13,78 +13,10 @@ from src.config.settings import (
 from src.services.employee_service import EmployeeService
 
 
-NIGHT_SHIFT_START_HOUR = 22
-NIGHT_SHIFT_END_HOUR = 6
-
-
 class AttendanceService:
     def __init__(self):
         self.storage = JSONStorage(ATTENDANCE_DATA_FILE)
         self.employee_service = EmployeeService()
-
-    def _get_today_date(self) -> str:
-        return datetime.now().strftime("%Y-%m-%d")
-
-    def _get_yesterday_date(self) -> str:
-        return (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-
-    def _get_current_time(self) -> str:
-        return datetime.now().strftime("%H:%M:%S")
-
-    def _get_current_hour(self) -> int:
-        return datetime.now().hour
-
-    def _parse_time(self, time_str: str) -> time:
-        return datetime.strptime(time_str, "%H:%M:%S").time()
-
-    def _is_night_shift_time(self, hour: int = None) -> bool:
-        if hour is None:
-            hour = self._get_current_hour()
-        return hour >= NIGHT_SHIFT_START_HOUR or hour < NIGHT_SHIFT_END_HOUR
-
-    def _is_late(self, clock_in_time: str) -> bool:
-        in_time = self._parse_time(clock_in_time)
-        if in_time > WORK_START_TIME:
-            return True
-        return False
-
-    def _is_early_leave(self, clock_out_time: str) -> bool:
-        out_time = self._parse_time(clock_out_time)
-        if out_time < WORK_END_TIME:
-            return True
-        return False
-
-    def _calculate_overtime(self, clock_out_time: str) -> float:
-        out_time = self._parse_time(clock_out_time)
-        end_hours = WORK_END_TIME.hour + WORK_END_TIME.minute / 60
-        out_hours = out_time.hour + out_time.minute / 60
-        if out_hours > end_hours:
-            return round(out_hours - end_hours, 1)
-        return 0.0
-
-    def _find_latest_unfinished_record(self, emp_id: str) -> Optional[AttendanceRecord]:
-        today = self._get_today_date()
-        yesterday = self._get_yesterday_date()
-        current_hour = self._get_current_hour()
-
-        today_record = self.get_record_by_date(emp_id, today)
-        if today_record and not today_record.clock_out_time:
-            return today_record
-
-        if current_hour < NIGHT_SHIFT_END_HOUR:
-            yesterday_record = self.get_record_by_date(emp_id, yesterday)
-            if yesterday_record and yesterday_record.clock_in_time and not yesterday_record.clock_out_time:
-                logger.debug(f"找到昨天的未完成打卡记录: {yesterday}")
-                return yesterday_record
-
-        all_records = self.get_records_by_employee(emp_id)
-        all_records.sort(key=lambda r: r.date, reverse=True)
-
-        for record in all_records:
-            if record.clock_in_time and not record.clock_out_time:
-                return record
-
-        return None
 
     def clock_in(self, emp_id: str) -> Optional[AttendanceRecord]:
         employee = self.employee_service.get_employee_by_id(emp_id)
@@ -92,38 +24,37 @@ class AttendanceService:
             logger.warning(f"打卡失败：未找到员工 ID: {emp_id}")
             return None
 
-        today = self._get_today_date()
-        existing_record = self.get_record_by_date(emp_id, today)
+        today = datetime.now().strftime("%Y-%m-%d")
+        existing = self._get_record_by_employee_date(emp_id, today)
+        if existing and existing.clock_in_time:
+            logger.info(f"{employee.name} 今日已上班打卡")
+            return existing
 
-        if existing_record:
-            if existing_record.clock_in_time:
-                logger.warning(f"打卡失败：{employee.name} 今日已上班打卡")
-                return None
+        now = datetime.now()
+        clock_in_time = now.strftime("%H:%M:%S")
+        is_late = self._check_late(now)
 
-            existing_record.clock_in_time = self._get_current_time()
-            existing_record.is_late = self._is_late(existing_record.clock_in_time)
-            existing_record.status = "已打卡" if not existing_record.is_late else "迟到"
+        if existing:
+            existing.clock_in_time = clock_in_time
+            existing.is_late = is_late
+            existing.status = self._determine_status(existing)
+            if self.storage.update(existing.id, existing.to_dict()):
+                logger.info(f"{employee.name} 上班打卡: {clock_in_time} {'(迟到)' if is_late else ''}")
+                return existing
+        else:
+            record = AttendanceRecord(
+                id=AttendanceRecord.generate_id(),
+                employee_id=emp_id,
+                employee_name=employee.name,
+                date=today,
+                clock_in_time=clock_in_time,
+                is_late=is_late,
+                status="迟到" if is_late else "正常",
+            )
+            if self.storage.add(record.to_dict()):
+                logger.info(f"{employee.name} 上班打卡: {clock_in_time} {'(迟到)' if is_late else ''}")
+                return record
 
-            if self.storage.update(existing_record.id, existing_record.to_dict()):
-                logger.info(f"上班打卡: {employee.name} - {existing_record.clock_in_time}")
-                return existing_record
-            return None
-
-        current_time = self._get_current_time()
-        is_late = self._is_late(current_time)
-        record = AttendanceRecord(
-            id=AttendanceRecord.generate_id(),
-            employee_id=emp_id,
-            employee_name=employee.name,
-            date=today,
-            clock_in_time=current_time,
-            status="已打卡" if not is_late else "迟到",
-            is_late=is_late,
-        )
-
-        if self.storage.add(record.to_dict()):
-            logger.info(f"上班打卡: {employee.name} - {current_time} (日期: {today})")
-            return record
         return None
 
     def clock_out(self, emp_id: str) -> Optional[AttendanceRecord]:
@@ -132,115 +63,194 @@ class AttendanceService:
             logger.warning(f"打卡失败：未找到员工 ID: {emp_id}")
             return None
 
-        current_hour = self._get_current_hour()
-        today = self._get_today_date()
-        yesterday = self._get_yesterday_date()
-
-        record = self._find_latest_unfinished_record(emp_id)
-
-        if not record:
-            logger.warning(f"打卡失败：{employee.name} 没有待下班的上班打卡记录")
+        today = datetime.now().strftime("%Y-%m-%d")
+        existing = self._get_record_by_employee_date(emp_id, today)
+        if not existing or not existing.clock_in_time:
+            logger.warning(f"{employee.name} 尚未上班打卡")
             return None
 
-        if record.clock_out_time:
-            logger.warning(f"打卡失败：{employee.name} 已下班打卡")
-            return None
+        if existing.clock_out_time:
+            logger.info(f"{employee.name} 今日已下班打卡")
+            return existing
 
-        current_time = self._get_current_time()
-        record.clock_out_time = current_time
-        record.is_early_leave = self._is_early_leave(current_time)
-        record.overtime_hours = self._calculate_overtime(current_time)
+        now = datetime.now()
+        clock_out_time = now.strftime("%H:%M:%S")
+        is_early_leave = self._check_early_leave(now)
+        overtime_hours = self._calculate_overtime(now)
 
-        if record.is_late and record.is_early_leave:
-            record.status = "迟到早退"
-        elif record.is_late:
-            record.status = "迟到"
-        elif record.is_early_leave:
-            record.status = "早退"
-        else:
-            record.status = "正常"
+        existing.clock_out_time = clock_out_time
+        existing.is_early_leave = is_early_leave
+        existing.overtime_hours = overtime_hours
+        existing.status = self._determine_status(existing)
 
-        if self.storage.update(record.id, record.to_dict()):
-            if record.date != today:
-                logger.info(
-                    f"下班打卡(跨天): {employee.name} - {current_time} "
-                    f"(上班日期: {record.date}, 下班日期: {today})"
-                )
-            else:
-                logger.info(f"下班打卡: {employee.name} - {current_time}")
-            return record
+        if self.storage.update(existing.id, existing.to_dict()):
+            logger.info(
+                f"{employee.name} 下班打卡: {clock_out_time} "
+                f"{'(早退)' if is_early_leave else ''} "
+                f"(加班 {overtime_hours:.1f}h)"
+            )
+            return existing
+
         return None
 
-    def get_record_by_date(self, emp_id: str, date: str) -> Optional[AttendanceRecord]:
-        records = self.storage.find(employee_id=emp_id, date=date)
-        return AttendanceRecord.from_dict(records[0]) if records else None
+    def mark_absent(
+        self, emp_id: str, date: str, remark: str = ""
+    ) -> Optional[AttendanceRecord]:
+        employee = self.employee_service.get_employee_by_id(emp_id)
+        if not employee:
+            logger.warning(f"标记缺勤失败：未找到员工 ID: {emp_id}")
+            return None
 
-    def get_all_records(self) -> List[AttendanceRecord]:
-        data = self.storage.load_all()
-        return [AttendanceRecord.from_dict(item) for item in data]
+        existing = self._get_record_by_employee_date(emp_id, date)
+        if existing:
+            existing.is_absent = True
+            existing.status = "缺勤"
+            existing.remark = remark
+            if self.storage.update(existing.id, existing.to_dict()):
+                logger.info(f"{employee.name} {date} 标记为缺勤")
+                return existing
+        else:
+            record = AttendanceRecord(
+                id=AttendanceRecord.generate_id(),
+                employee_id=emp_id,
+                employee_name=employee.name,
+                date=date,
+                is_absent=True,
+                status="缺勤",
+                remark=remark,
+            )
+            if self.storage.add(record.to_dict()):
+                logger.info(f"{employee.name} {date} 标记为缺勤")
+                return record
 
-    def get_records_by_employee(self, emp_id: str) -> List[AttendanceRecord]:
-        records = self.storage.find(employee_id=emp_id)
-        return [AttendanceRecord.from_dict(item) for item in records]
+        return None
+
+    def mark_leave_approved(
+        self, emp_id: str, date: str, leave_type: str, remark: str = ""
+    ) -> Optional[AttendanceRecord]:
+        employee = self.employee_service.get_employee_by_id(emp_id)
+        if not employee:
+            logger.warning(f"标记请假豁免失败：未找到员工 ID: {emp_id}")
+            return None
+
+        existing = self._get_record_by_employee_date(emp_id, date)
+        leave_status = f"请假({leave_type})"
+        remark_text = f"请假已批准: {leave_type}"
+        if remark:
+            remark_text = f"{remark_text} - {remark}"
+
+        if existing:
+            if existing.status.startswith("请假"):
+                return existing
+
+            existing.status = leave_status
+            existing.is_absent = False
+            existing.remark = remark_text
+
+            if self.storage.update(existing.id, existing.to_dict()):
+                logger.info(f"{employee.name} {date} 已豁免为 {leave_type}")
+                return existing
+        else:
+            record = AttendanceRecord(
+                id=AttendanceRecord.generate_id(),
+                employee_id=emp_id,
+                employee_name=employee.name,
+                date=date,
+                status=leave_status,
+                is_absent=False,
+                remark=remark_text,
+            )
+            if self.storage.add(record.to_dict()):
+                logger.info(f"{employee.name} {date} 已豁免为 {leave_type}")
+                return record
+
+        return None
 
     def get_records_by_date(self, date: str) -> List[AttendanceRecord]:
         records = self.storage.find(date=date)
         return [AttendanceRecord.from_dict(item) for item in records]
 
     def get_records_by_month(self, emp_id: str, month: str) -> List[AttendanceRecord]:
-        all_records = self.get_records_by_employee(emp_id)
-        return [r for r in all_records if r.date.startswith(month)]
-
-    def calculate_monthly_stats(self, emp_id: str, month: str) -> dict:
-        records = self.get_records_by_month(emp_id, month)
-        stats = {
-            "total_days": len(records),
-            "late_days": 0,
-            "early_leave_days": 0,
-            "absence_days": 0,
-            "overtime_hours": 0.0,
-            "normal_days": 0,
-        }
-
-        for record in records:
-            if record.is_late:
-                stats["late_days"] += 1
-            if record.is_early_leave:
-                stats["early_leave_days"] += 1
-            if record.is_absent:
-                stats["absence_days"] += 1
-            if record.status == "正常":
-                stats["normal_days"] += 1
-            stats["overtime_hours"] += record.overtime_hours
-
-        return stats
-
-    def mark_absent(self, emp_id: str, date: str, remark: str = "") -> Optional[AttendanceRecord]:
-        employee = self.employee_service.get_employee_by_id(emp_id)
-        if not employee:
-            return None
-
-        existing = self.get_record_by_date(emp_id, date)
-        if existing:
-            existing.is_absent = True
-            existing.status = "缺勤"
-            existing.remark = remark
-            if self.storage.update(existing.id, existing.to_dict()):
-                logger.info(f"标记缺勤: {employee.name} - {date}")
-                return existing
-            return None
-
-        record = AttendanceRecord(
-            id=AttendanceRecord.generate_id(),
-            employee_id=emp_id,
-            employee_name=employee.name,
-            date=date,
-            status="缺勤",
-            is_absent=True,
-            remark=remark,
+        all_records = self.storage.find(employee_id=emp_id)
+        month_records = [
+            record for record in all_records
+            if record.get("date", "").startswith(month)
+        ]
+        return sorted(
+            [AttendanceRecord.from_dict(item) for item in month_records],
+            key=lambda r: r.date,
         )
 
-        if self.storage.add(record.to_dict()):
-            logger.info(f"标记缺勤: {employee.name} - {date}")
-            return record
-        return None
+    def get_all_records(self) -> List[AttendanceRecord]:
+        data = self.storage.load_all()
+        return [AttendanceRecord.from_dict(item) for item in data]
+
+    def calculate_monthly_stats(self, emp_id: str, month: str) -> Dict:
+        records = self.get_records_by_month(emp_id, month)
+
+        total_days = len(records)
+        normal_days = 0
+        late_days = 0
+        early_leave_days = 0
+        absence_days = 0
+        leave_days = 0
+        overtime_hours = 0.0
+
+        for record in records:
+            if record.status.startswith("请假"):
+                leave_days += 1
+                continue
+            if record.is_absent or record.status == "缺勤":
+                absence_days += 1
+            else:
+                normal_days += 1
+            if record.is_late:
+                late_days += 1
+            if record.is_early_leave:
+                early_leave_days += 1
+            overtime_hours += record.overtime_hours
+
+        return {
+            "total_days": total_days,
+            "normal_days": normal_days,
+            "late_days": late_days,
+            "early_leave_days": early_leave_days,
+            "absence_days": absence_days,
+            "leave_days": leave_days,
+            "overtime_hours": round(overtime_hours, 1),
+        }
+
+    def _get_record_by_employee_date(
+        self, emp_id: str, date: str
+    ) -> Optional[AttendanceRecord]:
+        records = self.storage.find(employee_id=emp_id, date=date)
+        return AttendanceRecord.from_dict(records[0]) if records else None
+
+    def _check_late(self, now: datetime) -> bool:
+        start_time = datetime.combine(now.date(), WORK_START_TIME)
+        late_threshold = start_time + timedelta(minutes=LATE_THRESHOLD_MINUTES)
+        return now > late_threshold
+
+    def _check_early_leave(self, now: datetime) -> bool:
+        end_time = datetime.combine(now.date(), WORK_END_TIME)
+        return now < end_time
+
+    def _calculate_overtime(self, now: datetime) -> float:
+        end_time = datetime.combine(now.date(), WORK_END_TIME)
+        if now > end_time:
+            delta = now - end_time
+            return round(delta.total_seconds() / 3600, 1)
+        return 0.0
+
+    def _determine_status(self, record: AttendanceRecord) -> str:
+        if record.status.startswith("请假"):
+            return record.status
+        if record.is_absent:
+            return "缺勤"
+        if record.is_late and record.is_early_leave:
+            return "迟到+早退"
+        if record.is_late:
+            return "迟到"
+        if record.is_early_leave:
+            return "早退"
+        return "正常"

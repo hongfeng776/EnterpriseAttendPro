@@ -649,10 +649,11 @@ class AttendanceSystem(Menu):
                 "3": "待审批列表",
                 "4": "审批请假",
                 "5": "取消申请",
+                "6": "请假类型说明",
                 "0": "返回主菜单",
             })
 
-            choice = self.input_int("请选择操作 [0-5]: ")
+            choice = self.input_int("请选择操作 [0-6]: ")
 
             if choice == 0:
                 break
@@ -666,30 +667,91 @@ class AttendanceSystem(Menu):
                 self.approve_leave()
             elif choice == 5:
                 self.cancel_leave()
+            elif choice == 6:
+                self.show_leave_type_info()
             else:
                 print("  无效的选择！")
             self.wait_enter()
 
+    def show_leave_type_info(self):
+        self.print_header("请假类型说明")
+        leave_types = self.leave_service.get_available_leave_types()
+
+        print("\n【请假类型详情】")
+        print("-" * 60)
+        for lt in leave_types:
+            paid_status = "带薪" if lt["paid"] else "无薪"
+            print(f"\n  [{lt['type']}]")
+            print(f"    说明: {lt['description']}")
+            print(f"    薪资: {paid_status}")
+            print(f"    审批: {'需要审批' if lt['requires_approval'] else '自动通过'}")
+
     def apply_leave(self):
         self.print_header("申请请假")
-        emp_no = self.input_str("请输入员工编号: ")
-        employee = self.employee_service.get_employee_by_no(emp_no)
 
-        if not employee:
-            print(f"\n  未找到员工编号 {emp_no}！")
-            return
+        while True:
+            emp_no = self.input_str("请输入员工编号: ")
+            employee = self.employee_service.get_employee_by_no(emp_no)
+            if employee:
+                break
+            print(f"\n  ✗ 未找到员工编号 {emp_no}，请重新输入！\n")
 
-        leave_types = self.config_service.get_leave_types()
-        print(f"\n可用请假类型: {', '.join(leave_types)}")
+        print(f"\n【员工信息】")
+        print(f"  姓名: {employee.name}")
+        print(f"  部门: {employee.department}")
+        print(f"  职位: {employee.position}")
 
-        leave_type = self.input_str("请假类型: ")
-        if leave_type not in leave_types:
-            print(f"\n  无效的请假类型！")
-            return
+        print("\n【选择请假类型】")
+        leave_types = self.leave_service.get_available_leave_types()
+        for i, lt in enumerate(leave_types, 1):
+            paid_status = "带薪" if lt["paid"] else "无薪"
+            print(f"  {i}. {lt['type']} ({paid_status})")
 
-        start_date = self.input_date("开始日期 (YYYY-MM-DD): ")
-        end_date = self.input_date("结束日期 (YYYY-MM-DD): ")
+        while True:
+            type_choice = self.input_int("请选择请假类型编号: ")
+            if 1 <= type_choice <= len(leave_types):
+                leave_type = leave_types[type_choice - 1]["type"]
+                break
+            print("  无效的选择，请重新输入！")
+
+        lt_info = self.leave_service.get_leave_type_info(leave_type)
+        print(f"\n【{leave_type}】{lt_info['description']}")
+        print(f"  薪资: {'带薪' if lt_info['paid'] else '无薪'}")
+
+        print("\n【填写请假时间】")
+        while True:
+            start_date = self.input_date("开始日期 (YYYY-MM-DD): ")
+            end_date = self.input_date("结束日期 (YYYY-MM-DD): ")
+
+            from datetime import datetime
+            try:
+                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                if end_dt < start_dt:
+                    print("  结束日期不能早于开始日期，请重新输入！\n")
+                    continue
+                total_days = (end_dt - start_dt).days + 1
+                break
+            except ValueError:
+                print("  日期格式错误，请重新输入！\n")
+
+        print(f"\n【请假天数】共 {total_days} 天 ({start_date} 至 {end_date})")
+
+        print("\n【填写请假原因】")
+        print("  请详细描述请假原因（病假需提供医院证明）")
         reason = self.input_str("请假原因: ")
+
+        print("\n【确认申请】")
+        print(f"  申请人: {employee.name}")
+        print(f"  请假类型: {leave_type}")
+        print(f"  请假时间: {start_date} ~ {end_date}")
+        print(f"  请假天数: {total_days} 天")
+        print(f"  请假原因: {reason}")
+
+        confirm = self.input_str("\n确认提交请假申请? (Y/N): ").upper()
+        if confirm != "Y":
+            print("\n  操作已取消。")
+            return
 
         application = self.leave_service.apply_leave(
             emp_id=employee.id,
@@ -701,21 +763,24 @@ class AttendanceSystem(Menu):
 
         if application:
             print(f"\n  ✓ 请假申请提交成功！")
+            print(f"    申请编号: {application.id[:8]}...")
             print(f"    请假类型: {application.leave_type}")
             print(f"    请假时间: {application.start_date} ~ {application.end_date}")
             print(f"    请假天数: {application.total_days} 天")
             print(f"    当前状态: {application.status}")
+            print(f"\n  请等待管理员审批。")
         else:
-            print(f"\n  ✗ 申请提交失败！")
+            print(f"\n  ✗ 申请提交失败，可能是时间段已有请假申请！")
 
     def view_my_leave(self):
         self.print_header("我的请假记录")
-        emp_no = self.input_str("请输入员工编号: ")
-        employee = self.employee_service.get_employee_by_no(emp_no)
 
-        if not employee:
-            print(f"\n  未找到员工编号 {emp_no}！")
-            return
+        while True:
+            emp_no = self.input_str("请输入员工编号: ")
+            employee = self.employee_service.get_employee_by_no(emp_no)
+            if employee:
+                break
+            print(f"\n  ✗ 未找到员工编号 {emp_no}，请重新输入！\n")
 
         applications = self.leave_service.get_applications_by_employee(employee.id)
 
@@ -723,34 +788,69 @@ class AttendanceSystem(Menu):
             print(f"\n  {employee.name} 暂无请假记录！")
             return
 
-        print(f"\n共 {len(applications)} 条记录\n")
-        print(f"{'类型':<10}{'开始日期':<12}{'结束日期':<12}{'天数':<8}{'状态':<10}")
-        print("-" * 55)
+        print(f"\n【{employee.name}】共 {len(applications)} 条请假记录\n")
+        print(f"{'状态':<10}{'类型':<10}{'开始日期':<12}{'结束日期':<12}{'天数':<6}{'审批人':<8}")
+        print("-" * 62)
 
         for app in applications:
+            approver = app.approver if app.approver else "-"
             print(
-                f"{app.leave_type:<10}{app.start_date:<12}"
-                f"{app.end_date:<12}{app.total_days:<8}{app.status:<10}"
+                f"{app.status:<10}{app.leave_type:<10}{app.start_date:<12}"
+                f"{app.end_date:<12}{app.total_days:<6}{approver:<8}"
             )
 
+        if self.input_str("\n查看详细记录? (Y/N): ").upper() == "Y":
+            self._show_leave_details(applications)
+
+    def _show_leave_details(self, applications):
+        print("\n【详细记录】")
+        print("=" * 60)
+        for i, app in enumerate(applications, 1):
+            print(f"\n[{i}] 申请编号: {app.id}")
+            print(f"    申请人: {app.employee_name}")
+            print(f"    请假类型: {app.leave_type}")
+            print(f"    请假时间: {app.start_date} ~ {app.end_date} ({app.total_days} 天)")
+            print(f"    请假原因: {app.reason}")
+            print(f"    当前状态: {app.status}")
+            if app.approver:
+                print(f"    审批人: {app.approver}")
+                print(f"    审批时间: {app.approved_at}")
+                if app.approval_remark:
+                    print(f"    审批备注: {app.approval_remark}")
+            print(f"    申请时间: {app.created_at}")
+
     def view_pending_leave(self):
-        self.print_header("待审批请假")
+        self.print_header("待审批请假列表")
         applications = self.leave_service.get_pending_applications()
 
         if not applications:
             print("\n  暂无待审批的请假申请！")
             return
 
-        print(f"\n共 {len(applications)} 条待审批申请\n")
-        print(f"{'申请人':<10}{'类型':<10}{'开始日期':<12}{'结束日期':<12}{'天数':<8}")
-        print("-" * 55)
+        print(f"\n【管理员视图】共 {len(applications)} 条待审批申请\n")
+        print(f"{'序号':<4}{'申请人':<10}{'部门':<10}{'类型':<10}{'时间':<25}{'天数':<6}")
+        print("-" * 65)
 
-        for app in applications:
+        for i, app in enumerate(applications, 1):
+            employee = self.employee_service.get_employee_by_id(app.employee_id)
+            dept = employee.department if employee else "未知"
+            time_range = f"{app.start_date}~{app.end_date}"
             print(
-                f"{app.employee_name:<10}{app.leave_type:<10}"
-                f"{app.start_date:<12}{app.end_date:<12}{app.total_days:<8}"
+                f"{i:<4}{app.employee_name:<10}{dept:<10}{app.leave_type:<10}"
+                f"{time_range:<25}{app.total_days:<6}"
             )
-        print("\n  提示: 使用请假编号进行审批")
+
+        print("\n【统计信息】")
+        from collections import defaultdict
+        type_stats = defaultdict(int)
+        for app in applications:
+            type_stats[app.leave_type] += 1
+        print("  按类型分布:")
+        for leave_type, count in type_stats.items():
+            print(f"    {leave_type}: {count} 条")
+
+        if self.input_str("\n查看详细申请? (Y/N): ").upper() == "Y":
+            self._show_leave_details(applications)
 
     def approve_leave(self):
         self.print_header("审批请假")
@@ -760,18 +860,39 @@ class AttendanceSystem(Menu):
             print("\n  暂无待审批的请假申请！")
             return
 
-        print(f"\n共 {len(applications)} 条待审批申请\n")
+        print(f"\n【待审批申请列表】共 {len(applications)} 条\n")
         for i, app in enumerate(applications, 1):
-            print(f"  {i}. {app.employee_name} - {app.leave_type} ({app.start_date}~{app.end_date}) - {app.reason}")
+            employee = self.employee_service.get_employee_by_id(app.employee_id)
+            dept = employee.department if employee else "未知"
+            print(f"  {i}. {app.employee_name} ({dept})")
+            print(f"     类型: {app.leave_type} | 时间: {app.start_date}~{app.end_date} ({app.total_days}天)")
+            print(f"     原因: {app.reason}")
+            print(f"     申请时间: {app.created_at}")
+            print()
 
-        choice = self.input_int("\n请选择要审批的申请编号 (0取消): ")
+        choice = self.input_int("请选择要审批的申请编号 (0取消): ")
         if choice == 0:
             print("\n  操作已取消。")
             return
 
         if 1 <= choice <= len(applications):
             app = applications[choice - 1]
-            action = self.input_str(f"\n请选择操作 (A批准/R拒绝): ").upper()
+            employee = self.employee_service.get_employee_by_id(app.employee_id)
+
+            print(f"\n【申请详情】")
+            print(f"  申请人: {app.employee_name}")
+            print(f"  部门: {employee.department if employee else '未知'}")
+            print(f"  请假类型: {app.leave_type}")
+            print(f"  请假时间: {app.start_date} ~ {app.end_date}")
+            print(f"  请假天数: {app.total_days} 天")
+            print(f"  请假原因: {app.reason}")
+
+            action = self.input_str("\n请选择操作 (A=批准, R=拒绝, C=取消): ").upper()
+
+            if action == "C":
+                print("\n  操作已取消。")
+                return
+
             approver = self.input_str("审批人姓名: ")
             remark = self.input_str("审批备注 (可空): ", allow_empty=True)
 
@@ -779,6 +900,7 @@ class AttendanceSystem(Menu):
                 result = self.leave_service.approve(app.id, approver, remark)
                 if result:
                     print(f"\n  ✓ 已批准 {app.employee_name} 的请假申请！")
+                    print(f"    该时间段考勤已自动豁免，不计入旷工。")
             elif action == "R":
                 result = self.leave_service.reject(app.id, approver, remark)
                 if result:
