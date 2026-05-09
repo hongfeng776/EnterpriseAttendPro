@@ -16,6 +16,7 @@ class Employee:
     email: str
     join_date: str
     base_salary: float
+    role: str = "员工"
     status: str = "在职"
     created_at: str = field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -35,6 +36,7 @@ class Employee:
             "email": self.email,
             "join_date": self.join_date,
             "base_salary": self.base_salary,
+            "role": self.role,
             "status": self.status,
             "created_at": self.created_at,
         }
@@ -52,6 +54,7 @@ class Employee:
             email=data.get("email", ""),
             join_date=data.get("join_date", ""),
             base_salary=float(data.get("base_salary", 0)),
+            role=data.get("role", "员工"),
             status=data.get("status", "在职"),
             created_at=data.get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
         )
