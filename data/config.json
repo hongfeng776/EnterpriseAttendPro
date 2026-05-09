@@ -1,0 +1,46 @@
+{
+  "system": {
+    "name": "企业级员工考勤管理系统",
+    "version": "1.0.0",
+    "language": "zh-CN"
+  },
+  "work_hours": {
+    "work_start_time": "09:00:00",
+    "work_end_time": "18:00:00",
+    "late_threshold_minutes": 30
+  },
+  "salary": {
+    "default_base_salary": 5000,
+    "overtime_rate": 1.5,
+    "late_deduction": 50,
+    "early_leave_deduction": 50,
+    "absence_deduction": 200
+  },
+  "departments": [
+    "技术部",
+    "市场部",
+    "人事部",
+    "财务部",
+    "销售部",
+    "行政部"
+  ],
+  "positions": [
+    "员工",
+    "主管",
+    "经理",
+    "总监",
+    "总经理"
+  ],
+  "leave_types": [
+    "年假",
+    "病假",
+    "事假",
+    "婚假",
+    "产假",
+    "丧假"
+  ],
+  "notifications": {
+    "enable_reminder": true,
+    "reminder_time": "08:45"
+  }
+}
