@@ -163,10 +163,13 @@ class AttendanceSystem(Menu):
                 "4": "更新员工信息",
                 "5": "删除员工",
                 "6": "按部门查看",
+                "7": "多条件筛选",
+                "8": "批量导入员工",
+                "9": "导出员工报表",
                 "0": "返回主菜单",
             })
 
-            choice = self.input_int("请选择操作 [0-6]: ")
+            choice = self.input_int("请选择操作 [0-9]: ")
 
             if choice == 0:
                 break
@@ -182,6 +185,12 @@ class AttendanceSystem(Menu):
                 self.delete_employee()
             elif choice == 6:
                 self.list_by_department()
+            elif choice == 7:
+                self.filter_employees_ui()
+            elif choice == 8:
+                self.batch_import_employees()
+            elif choice == 9:
+                self.export_employees_report()
             else:
                 print("  无效的选择！")
             self.wait_enter()
@@ -346,6 +355,144 @@ class AttendanceSystem(Menu):
                 print(f"{emp.employee_no:<10}{emp.name:<10}{emp.position:<10}{emp.status:<8}")
         else:
             print("\n  无效的选择！")
+
+    def filter_employees_ui(self):
+        self.print_header("多条件筛选员工")
+        print("\n请输入筛选条件（留空表示不限制）\n")
+
+        departments = self.config_service.get_departments()
+        positions = self.config_service.get_positions()
+
+        print(f"可用部门: {', '.join(departments)}")
+        print(f"可用职位: {', '.join(positions)}")
+        print()
+
+        department = self.input_str("部门: ", allow_empty=True)
+        employee_no = self.input_str("工号: ", allow_empty=True)
+        name = self.input_str("姓名: ", allow_empty=True)
+        status = self.input_str("状态 (在职/离职): ", allow_empty=True)
+        position = self.input_str("职位: ", allow_empty=True)
+
+        employees = self.employee_service.filter_employees(
+            department=department if department else None,
+            employee_no=employee_no if employee_no else None,
+            name=name if name else None,
+            status=status if status else None,
+            position=position if position else None,
+        )
+
+        if not employees:
+            print("\n  未找到符合条件的员工！")
+            return
+
+        print(f"\n找到 {len(employees)} 名员工\n")
+        print(f"{'编号':<10}{'姓名':<10}{'性别':<6}{'部门':<12}{'职位':<10}{'状态':<8}{'薪资':<12}")
+        print("-" * 70)
+
+        for emp in employees:
+            print(
+                f"{emp.employee_no:<10}{emp.name:<10}{emp.gender:<6}"
+                f"{emp.department:<12}{emp.position:<10}{emp.status:<8}{emp.base_salary:<12.2f}"
+            )
+
+    def batch_import_employees(self):
+        self.print_header("批量导入员工")
+        print("\n1. 从 CSV 文件导入")
+        print("2. 从 TXT 文件导入")
+        print("3. 查看导入格式说明")
+        print("0. 取消")
+
+        choice = self.input_int("\n请选择 [0-3]: ")
+
+        if choice == 0:
+            print("\n  操作已取消。")
+            return
+        elif choice == 3:
+            print("\n" + "=" * 60)
+            print(self.employee_service.get_import_template())
+            print("=" * 60)
+            return
+
+        file_path = self.input_str("请输入文件完整路径: ")
+
+        if choice == 1:
+            success, fail, errors = self.employee_service.batch_import_from_csv(file_path)
+        elif choice == 2:
+            delimiter = self.input_str("请输入分隔符 (默认逗号): ", allow_empty=True) or ","
+            success, fail, errors = self.employee_service.batch_import_from_txt(file_path, delimiter)
+        else:
+            print("\n  无效的选择！")
+            return
+
+        print(f"\n  导入完成!")
+        print(f"    成功: {success} 条")
+        print(f"    失败: {fail} 条")
+
+        if errors:
+            print(f"\n  错误详情:")
+            for err in errors[:10]:
+                print(f"    - {err}")
+            if len(errors) > 10:
+                print(f"    ... 还有 {len(errors) - 10} 条错误")
+
+    def export_employees_report(self):
+        self.print_header("导出员工报表")
+        print("\n1. 导出所有员工")
+        print("2. 按筛选条件导出")
+        print("0. 取消")
+
+        choice = self.input_int("\n请选择 [0-2]: ")
+
+        if choice == 0:
+            print("\n  操作已取消。")
+            return
+
+        employees = None
+        if choice == 2:
+            department = self.input_str("筛选部门 (留空不限制): ", allow_empty=True)
+            employee_no = self.input_str("筛选工号 (留空不限制): ", allow_empty=True)
+            name = self.input_str("筛选姓名 (留空不限制): ", allow_empty=True)
+            status = self.input_str("筛选状态 (在职/离职, 留空不限制): ", allow_empty=True)
+
+            employees = self.employee_service.filter_employees(
+                department=department if department else None,
+                employee_no=employee_no if employee_no else None,
+                name=name if name else None,
+                status=status if status else None,
+            )
+
+            if not employees:
+                print("\n  未找到符合条件的员工！")
+                return
+
+            print(f"\n  找到 {len(employees)} 名员工待导出")
+
+        print("\n1. 导出为 CSV 格式")
+        print("2. 导出为 TXT 格式")
+        format_choice = self.input_int("请选择格式 [1-2]: ")
+
+        default_name = f"employees_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        filename = self.input_str(f"请输入文件名 (默认 {default_name}): ", allow_empty=True) or default_name
+
+        from src.config.settings import DATA_DIR
+        import os
+
+        if format_choice == 1:
+            file_path = os.path.join(DATA_DIR, f"{filename}.csv")
+            result = self.employee_service.export_to_csv(file_path, employees)
+        elif format_choice == 2:
+            delimiter = self.input_str("请输入分隔符 (默认逗号): ", allow_empty=True) or ","
+            file_path = os.path.join(DATA_DIR, f"{filename}.txt")
+            result = self.employee_service.export_to_txt(file_path, employees, delimiter)
+        else:
+            print("\n  无效的选择！")
+            return
+
+        if result:
+            print(f"\n  ✓ 导出成功！文件路径:")
+            print(f"    {file_path}")
+        else:
+            print(f"\n  ✗ 导出失败！")
 
     def attendance_menu(self):
         while True:
